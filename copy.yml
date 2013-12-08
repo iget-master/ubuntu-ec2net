@@ -1,0 +1,14 @@
+---
+- hosts: remote
+  user: ubuntu
+
+  tasks:
+    - name: copy first file
+      copy: src={{item.src}} dest={{item.dest}}
+      sudo: yes
+      with_items: 
+        - { "src": "53-ec2-network-interfaces.rules", "dest": "/etc/udev/rules.d" }
+        - { "src": "75-persistent-net-generator.rules", "dest": "/etc/udev/rules.d"}
+        - { "src": "ec2dhcp.sh", "dest": "/etc/dhcp/dhclient-exit-hooks.d/"}
+        - { "src": "ec2net-functions", "dest": "/etc/network"}
+        - { "src": "ec2net.hotplug", "dest": "/etc/network"}
