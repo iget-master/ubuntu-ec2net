@@ -4,11 +4,11 @@
 
   tasks:
     - name: copy first file
-      copy: src={{item.src}} dest={{item.dest}} owner=root mode=644
+      copy: src={{item.src}} dest={{item.dest}} owner=root mode={{item.mode}}
       sudo: yes
       with_items: 
-        - { "src": "53-ec2-network-interfaces.rules", "dest": "/etc/udev/rules.d" }
-        - { "src": "75-persistent-net-generator.rules", "dest": "/etc/udev/rules.d"}
-        - { "src": "ec2dhcp", "dest": "/etc/dhcp/dhclient-exit-hooks.d/"}
-        - { "src": "ec2net-functions", "dest": "/etc/network"}
-        - { "src": "ec2net.hotplug", "dest": "/etc/network"}
+        - { "src": "53-ec2-network-interfaces.rules", "dest": "/etc/udev/rules.d", "mode": 644 }
+        - { "src": "75-persistent-net-generator.rules", "dest": "/etc/udev/rules.d", "mode": 644 }
+        - { "src": "ec2dhcp", "dest": "/etc/dhcp/dhclient-exit-hooks.d/", "mode": 644 }
+        - { "src": "ec2net-functions", "dest": "/etc/network", "mode": 644 }
+        - { "src": "ec2net.hotplug", "dest": "/etc/network", "mode": 744 }
