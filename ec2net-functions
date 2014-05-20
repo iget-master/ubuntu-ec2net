@@ -103,10 +103,10 @@ rewrite_primary() {
   router=$(( $(echo ${network}|cut -d. -f4) + 1))
   gateway="$(echo ${network}|cut -d. -f1-3).${router}"
   cat <<- EOF > ${config_file}
-auto
-inet dhcp
-post-up ip route add default via ${gateway} dev ${INTERFACE} table ${RTABLE}
-post-up ip route add default via ${gateway} dev ${INTERFACE} metric ${RTABLE}
+# This file is automaticatically generated
+# See https://github.com/jessecollier/ubuntu-ec2net for source
+auto ${INTERFACE}
+iface ${INTERFACE} inet dhcp
 EOF
   # Use broadcast address instead of unicast dhcp server address.
   # Works around an issue with two interfaces on the same subnet.
