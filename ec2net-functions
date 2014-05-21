@@ -107,6 +107,8 @@ rewrite_primary() {
 # See https://github.com/jessecollier/ubuntu-ec2net for source
 auto ${INTERFACE}
 iface ${INTERFACE} inet dhcp
+post-up ip route add default via ${gateway} dev ${INTERFACE} table ${RTABLE}
+post-up ip route add default via ${gateway} dev ${INTERFACE} metric ${RTABLE}
 EOF
   # Use broadcast address instead of unicast dhcp server address.
   # Works around an issue with two interfaces on the same subnet.
