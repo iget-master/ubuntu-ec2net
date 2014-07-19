@@ -37,7 +37,7 @@ RTABLE=${INTERFACE#eth}
 let RTABLE+=10000
 
 metadata_base="http://169.254.169.254/latest/meta-data/network/interfaces/macs"
-config_file="/etc/network/interfaces.d/${INTERFACE}"
+config_file="/etc/network/interfaces.d/${INTERFACE}.cfg"
 dhclient_file="/etc/dhcp/dhclient-${INTERFACE}.conf"
 
 # make no changes to unmanaged interfaces
@@ -103,8 +103,10 @@ rewrite_primary() {
   router=$(( $(echo ${network}|cut -d. -f4) + 1))
   gateway="$(echo ${network}|cut -d. -f1-3).${router}"
   cat <<- EOF > ${config_file}
-auto
-inet dhcp
+# This file is automaticatically generated
+# See https://github.com/jessecollier/ubuntu-ec2net for source
+auto ${INTERFACE}
+iface ${INTERFACE} inet dhcp
 post-up ip route add default via ${gateway} dev ${INTERFACE} table ${RTABLE}
 post-up ip route add default via ${gateway} dev ${INTERFACE} metric ${RTABLE}
 EOF
