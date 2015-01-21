@@ -16,13 +16,11 @@
 # License.
 
 # During init and before the network service is started, metadata is not
-# available. Exit without attempting to configure the elastic interface.
-#if [ ! -f /var/lock/subsys/network ]; then
-#  exit
-#fi
-#if [ -f /dev/.in_sysinit ]; then
-#  exit
-#fi
+# available. Exit without attempting to configure the elastic interface
+# if eth0 isn't up yet.
+if [ ! -f /sys/class/net/eth0/operstate ] || ! grep 'up' /sys/class/net/eth0/operstate; then
+  exit
+fi
 
 . /etc/network/ec2net-functions
 
