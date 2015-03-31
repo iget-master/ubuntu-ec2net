@@ -21,3 +21,5 @@ Add an interface by hand
 To configure `eth1`, for example:
 
     env INTERFACE=eth1 ACTION=add /etc/network/ec2net.hotplug add
+
+Note that this configuration will survive a reboot.

@@ -7,7 +7,7 @@ dist:
 	mkdir -p build/etc/network
 	DEST=build make install
 	chown -R 0:0 build
-	tar -C build -cf dist.tgz .
+	tar -C build -czf dist.tgz .
 
 .PHONY: modes
 modes:
