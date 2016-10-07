@@ -33,8 +33,7 @@ fi
 export HWADDR
 
 # generate a routing table number
-RTABLE=${INTERFACE#eth}
-let RTABLE+=10000
+RTABLE=$(( ${INTERFACE#eth} + 10000 ))
 
 metadata_base="http://169.254.169.254/latest/meta-data/network/interfaces/macs"
 config_file="/etc/network/interfaces.d/${INTERFACE}.cfg"
@@ -43,7 +42,7 @@ dhclient_file="/etc/dhcp/dhclient-${INTERFACE}.conf"
 # make no changes to unmanaged interfaces
 if [ -s ${config_file} ]; then
   unmanaged=$(LANG=C grep -l "^[[:space:]]*EC2SYNC=no\([[:space:]#]\|$\)" $config_file)
-  if [ "${config_file}" == "${unmanaged}" ]; then
+  if [ "${config_file}" = "${unmanaged}" ]; then
     exit
   fi
 fi
@@ -74,13 +73,11 @@ get_ipv4s() {
 }
 
 get_primary_ipv4() {
-  ipv4s=($(get_ipv4s))
-  echo "${ipv4s[0]}"
+  printf '%s ' $(get_ipv4s) | cut -d' ' -f1
 }
 
 get_secondary_ipv4s() {
-  ipv4s=($(get_ipv4s))
-  echo "${ipv4s[@]:1}"
+  printf '%s ' $(get_ipv4s) | cut -d' ' -f2-
 }
 
 remove_primary() {
@@ -100,7 +97,7 @@ rewrite_primary() {
     return
   fi
   network=$(echo ${cidr}|cut -d/ -f1)
-  router=$(( $(echo ${network}|cut -d. -f4) + 1))
+  router=$(( $(echo ${network}|cut -d. -f4) + 1 ))
   gateway="$(echo ${network}|cut -d. -f1-3).${router}"
   cat <<- EOF > ${config_file}
 # This file is automaticatically generated
