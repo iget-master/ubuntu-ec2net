@@ -1,4 +1,4 @@
-# -*-Shell-script-*-
+#!/bin/sh
 
 # Copyright (C) 2012 Amazon.com, Inc. or its affiliates.
 # All Rights Reserved.
