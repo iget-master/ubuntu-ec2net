@@ -81,7 +81,7 @@ get_secondary_ipv4s() {
 }
 
 remove_primary() {
-  if [ "${INTERFACE}" == "eth0" ]; then
+  if [ "${INTERFACE}" = "eth0" ]; then
     return
   fi
   rm -f ${config_file}
@@ -89,7 +89,7 @@ remove_primary() {
 }
 
 rewrite_primary() {
-  if [ "${INTERFACE}" == "eth0" ]; then
+  if [ "${INTERFACE}" = "eth0" ]; then
     return
   fi
   cidr=$(get_cidr)
@@ -159,7 +159,7 @@ rewrite_aliases() {
 }
 
 remove_rules() {
-  if [ "${INTERFACE}" == "eth0" ]; then
+  if [ "${INTERFACE}" = "eth0" ]; then
     return
   fi
   for rule in $(/sbin/ip rule list \
@@ -170,7 +170,7 @@ remove_rules() {
 }
 
 rewrite_rules() {
-  if [ "${INTERFACE}" == "eth0" ]; then
+  if [ "${INTERFACE}" = "eth0" ]; then
     return
   fi
   ips=$( get_ipv4s | xargs printf '%s ' )
