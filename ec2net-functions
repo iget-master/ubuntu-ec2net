@@ -173,11 +173,16 @@ rewrite_rules() {
   if [ "${INTERFACE}" == "eth0" ]; then
     return
   fi
-  ips=($(get_ipv4s))
-  if [ ${#ips[*]} -eq 0 ]; then
+  ips=$( get_ipv4s | xargs printf '%s ' )
+  if [ "${#ips}" -eq 0 ]; then
     remove_rules
     return
   fi
+# Could not figure out how to eliminate all these Bashisms but this script is
+# sourced from a /bin/sh script so we have to wrap them.
+bash -s -- "$RTABLE" $ips <<\EOF
+  RTABLE="$1" ; shift
+  ips=( "$@" )
   # Retrieve a list of IP rules for the route table that belongs
   # to this interface. Treat this as the stale list. For each IP
   # address obtained from metadata, cross the corresponding rule
@@ -185,22 +190,23 @@ rewrite_rules() {
   # outbound traffic from that IP to the interface route table.
   # Then, remove all other rules found in the stale list.
   declare -A rules
-  for rule in $(/sbin/ip rule list \
-                |grep "from .* lookup ${RTABLE}" \
-                |awk '{print $1$3}'); do
+  for rule in $( /sbin/ip rule list |
+                 grep "from .* lookup ${RTABLE}" |
+                 awk '{print $1$3}' ); do
     split=(${rule//:/ })
     rules[${split[1]}]=${split[0]}
   done
-  for ip in ${ips[@]}; do
+  for ip in "${ips[@]}"; do
     if [[ ${rules[${ip}]} ]]; then
       unset rules[${ip}]
     else
-      /sbin/ip rule add from ${ip} lookup ${RTABLE}
+      /sbin/ip rule add from "${ip}" lookup ${RTABLE}
     fi
   done
   for rule in "${!rules[@]}"; do
     /sbin/ip rule delete pref "${rules[${rule}]}"
   done
+EOF
 }
 
 plug_interface() {
