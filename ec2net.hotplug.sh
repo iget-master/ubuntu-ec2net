@@ -17,9 +17,11 @@
 
 # During init and before the network service is started, metadata is not
 # available. Exit without attempting to configure the elastic interface
-# if eth0 isn't up yet.
+# if eth0/ens3 isn't up yet.
 if [ ! -f /sys/class/net/eth0/operstate ] || ! grep 'up' /sys/class/net/eth0/operstate; then
-  exit
+  if [ ! -f /sys/class/net/ens3/operstate ] || ! grep 'up' /sys/class/net/ens3/operstate; then
+    exit
+  fi
 fi
 
 . /etc/network/ec2net-functions

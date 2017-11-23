@@ -32,8 +32,18 @@ if [ -z "${HWADDR}" ] && [ "${ACTION}" != "remove" ]; then
 fi
 export HWADDR
 
+# Check if Predictable Network Interface Name is enabled
+# and set the interface name prefix and default primary interface
+if [[ $INTERFACE == eth* ]]; then
+    PRIMARY_INTERFACE=eth0
+    TYPE=eth
+else
+    PRIMARY_INTERFACE=ens3
+    TYPE=ens
+fi
+
 # generate a routing table number
-RTABLE=$(( ${INTERFACE#eth} + 10000 ))
+RTABLE=$(( ${INTERFACE#${TYPE}} + 10000 ))
 
 metadata_base="http://169.254.169.254/latest/meta-data/network/interfaces/macs"
 config_file="/etc/network/interfaces.d/${INTERFACE}.cfg"
@@ -81,7 +91,7 @@ get_secondary_ipv4s() {
 }
 
 remove_primary() {
-  if [ "${INTERFACE}" = "eth0" ]; then
+  if [ "${INTERFACE}" = "${PRIMARY_INTERFACE}" ]; then
     return
   fi
   rm -f ${config_file}
@@ -89,7 +99,7 @@ remove_primary() {
 }
 
 rewrite_primary() {
-  if [ "${INTERFACE}" = "eth0" ]; then
+  if [ "${INTERFACE}" = "${PRIMARY_INTERFACE}" ]; then
     return
   fi
   cidr=$(get_cidr)
@@ -159,7 +169,7 @@ rewrite_aliases() {
 }
 
 remove_rules() {
-  if [ "${INTERFACE}" = "eth0" ]; then
+  if [ "${INTERFACE}" = "${PRIMARY_INTERFACE}" ]; then
     return
   fi
   for rule in $(/sbin/ip rule list \
@@ -170,7 +180,7 @@ remove_rules() {
 }
 
 rewrite_rules() {
-  if [ "${INTERFACE}" = "eth0" ]; then
+  if [ "${INTERFACE}" = "${PRIMARY_INTERFACE}" ]; then
     return
   fi
   ips=$( get_ipv4s | xargs printf '%s ' )

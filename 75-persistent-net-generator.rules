@@ -19,8 +19,9 @@ KERNEL!="eth*", GOTO="persistent_net_generator_end"
 ACTION!="add", GOTO="persistent_net_generator_end"
 NAME=="?*", GOTO="persistent_net_generator_end"
 
-# do not create rule for eth0
+# do not create rule for eth0/ens3
 ENV{INTERFACE}=="eth0", GOTO="persistent_net_generator_end"
+ENV{INTERFACE}=="ens3", GOTO="persistent_net_generator_end"
 
 # read MAC address
 ENV{MATCHADDR}="$attr{address}"
