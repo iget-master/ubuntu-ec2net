@@ -13,6 +13,10 @@
 # specific language governing permissions and limitations under the
 # License.
 
-ACTION=="add", SUBSYSTEM=="net", KERNEL=="eth*", IMPORT{program}="/bin/sleep 1"
-ACTION=="add", SUBSYSTEM=="net", KERNEL=="ens*", IMPORT{program}="/bin/sleep 1"
+KERNEL!="eth*", GOTO="hotplug_end"
+KERNEL!="ens*", GOTO="hotplug_end"
+
+ACTION=="add", SUBSYSTEM=="net", IMPORT{program}="/bin/sleep 1"
 SUBSYSTEM=="net", RUN+="/etc/network/ec2net.hotplug.sh"
+
+LABEL="hotplug_end"
