@@ -13,8 +13,10 @@ dist:
 modes:
 	chmod 644 53-ec2-network-interfaces.rules
 	chmod 644 75-persistent-net-generator.rules
+	chmod 644 elastic-network-interfaces.conf
 	chmod 644 ec2dhcp
 	chmod 644 ec2net-functions
+	chmod 755 ec2ifscan
 	chmod 755 ec2net.hotplug.sh
 	chown 0:0 53-ec2-network-interfaces.rules
 	chown 0:0 75-persistent-net-generator.rules
@@ -29,3 +31,5 @@ install: modes
 	cp -a ec2dhcp $(DEST)/etc/dhcp/dhclient-exit-hooks.d/
 	cp -a ec2net-functions $(DEST)/etc/network/
 	cp -a ec2net.hotplug.sh $(DEST)/etc/network/
+	cp -a ec2ifscan $(DEST)/sbin/ec2ifscan
+	cp -a elastic-network-interfaces.conf $(DEST)/etc/init/

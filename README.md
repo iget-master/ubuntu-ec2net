@@ -7,6 +7,16 @@ configuring additional AWS Elastic Network Interfaces.
 
 The main change right now is that this tool now supports [Predictable Network Interface Names](https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/).
 
+# Features
+
+The following features was implemented over ademaria's package:
+
+- [ ] Add support to Predictable Network Interface Names
+- [ ] IPv6 support
+- [ ] Improve Logging
+- [ ] ec2ifscan was ported
+- [ ] Now it detects interfaces attached on stopped instance
+
 # Todo:
 
 - [ ] Add support to IPv6 (port current version of ec2net from Amazon Linux)

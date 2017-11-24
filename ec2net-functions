@@ -46,7 +46,7 @@ fi
 RTABLE=$(( ${INTERFACE#${TYPE}} + 10000 ))
 
 metadata_base="http://169.254.169.254/latest/meta-data/network/interfaces/macs"
-config_file="/etc/network/interfaces.d/${INTERFACE}.cfg"
+config_file="/etc/network/interfaces.d/if-${INTERFACE}.cfg"
 dhclient_file="/etc/dhcp/dhclient-${INTERFACE}.conf"
 
 # make no changes to unmanaged interfaces
@@ -58,14 +58,18 @@ if [ -s ${config_file} ]; then
 fi
 
 get_meta() {
-  attempts=10
+  attempts=60
   false
   while [ "${?}" -gt 0 ]; do
-    [ "${attempts}" -eq 0 ] && return
+    if [ "${attempts}" -eq 0 ]; then
+      logger --tag ec2net "[get_meta] Failed to get ${metadata_base}/${HWADDR}/${1}"
+      return
+    fi
+    logger --tag ec2net "[get_meta] Trying to get ${metadata_base}/${HWADDR}/${1}"
     meta=$(curl -s -f ${metadata_base}/${HWADDR}/${1})
     if [ "${?}" -gt 0 ]; then
       let attempts--
-      sleep 3
+      sleep 0.5
       false
     fi
   done
@@ -90,10 +94,66 @@ get_secondary_ipv4s() {
   printf '%s ' $(get_ipv4s) | cut -d' ' -f2-
 }
 
+get_ipv6s() {
+  /sbin/ip -6 addr list dev ${INTERFACE} scope global \
+      | grep "inet6" \
+      | awk '{print $2}' | cut -d/ -f1
+}
+
+get_ipv6_gateway() {
+  # Because we start dhclient -6 immediately on interface
+  # hotplug, it's possible we get a DHCP response before we
+  # receive a router advertisement. The only immediate clue we
+  # have about the gateway is the MAC address embedded in the
+  # DHCP6 server ID. If that env var is passed to dhclient-script
+  # we determine the router address from that; otherwise we wait
+  # up to 10 seconds for an RA route to be added by the kernel.
+
+  if echo "$new_dhcp6_server_id" | grep -q "^0:3:0:1:"; then
+    logger --tag ec2net "[get_ipv6_gateway] Using DHCP6 environment variable"
+    octets=($(echo "$new_dhcp6_server_id" | rev | cut -d : -f -6 | rev | tr : ' '))
+
+    # The gateway's link local address is derived from the
+    # hardware address by converting the MAC-48 to an EUI-64:
+    #   00:00:5e  :  00:53:35
+    #   ^^      ^^^^^ ff:fe is inserted in the middle
+    #   first octet is xored with 0x2 (second LSB is flipped)
+    # thus 02:00:5e:ff:fe:00:53:35.
+    #
+    # The EUI-64 is used as the last 64 bits in an fe80::/64
+    # address, so fe80::200:5eff:fe00:5335.
+
+    declare -A quibbles # quad nibbles
+    quibbles[0]=$(( ((0x${octets[0]} ^ 2) << 8) + 0x${octets[1]} ))
+    quibbles[1]=$(( 0x${octets[2]}ff ))
+    quibbles[2]=$(( 0xfe00 + 0x${octets[3]} ))
+    quibbles[3]=$(( (0x${octets[4]} << 8) + 0x${octets[5]} ))
+    printf "fe80::%04x:%04x:%04x:%04x\n" ${quibbles[@]}
+  else
+    logger --tag ec2net "[get_ipv6_gateway] Waiting for IPv6 router advertisement"
+    attempts=20
+    while true; do
+      if [ "${attempts}" -eq 0 ]; then
+        logger --tag ec2net "[get_ipv6_gateway] Failed to receive router advertisement"
+        return
+      fi
+      gateway6=$(/sbin/ip -6 route show dev "${INTERFACE}" | grep ^default | awk '{print $3}')
+      if [ -n "${gateway6}" ]; then
+        break
+      else
+        let attempts--
+        sleep 0.5
+      fi
+    done
+    echo "${gateway6}"
+  fi
+}
+
 remove_primary() {
   if [ "${INTERFACE}" = "${PRIMARY_INTERFACE}" ]; then
     return
   fi
+  logger --tag ec2net "[remove_primary] Removing configs for ${INTERFACE}"
   rm -f ${config_file}
   rm -f ${dhclient_file}
 }
@@ -111,7 +171,7 @@ rewrite_primary() {
   gateway="$(echo ${network}|cut -d. -f1-3).${router}"
   cat <<- EOF > ${config_file}
 # This file is automaticatically generated
-# See https://github.com/jessecollier/ubuntu-ec2net for source
+# See https://github.com/iget-master/ubuntu-ec2net for source
 auto ${INTERFACE}
 iface ${INTERFACE} inet dhcp
 iface ${INTERFACE} inet6 dhcp
@@ -129,6 +189,7 @@ EOF
 }
 
 remove_aliases() {
+  logger --tag ec2net "[remove_aliases] Removing aliases of ${INTERFACE}"
   /sbin/ip addr flush dev ${INTERFACE} secondary
 }
 
@@ -138,6 +199,7 @@ rewrite_aliases() {
     remove_aliases
     return
   fi
+  logger --tag ec2net "[rewrite_aliases] Rewriting aliases of ${INTERFACE}"
   # The network prefix can be provided in the environment by
   # e.g. DHCP, but if it's not available then we need it to
   # correctly configure secondary addresses.
@@ -170,30 +232,44 @@ rewrite_aliases() {
 }
 
 remove_rules() {
-  if [ "${INTERFACE}" = "${PRIMARY_INTERFACE}" ]; then
+  if [ "${INTERFACE}" == "${PRIMARY_INTERFACE}" ]; then
     return
   fi
-  for rule in $(/sbin/ip rule list \
+  logger --tag ec2net "[remove_rules] Removing rules for ${INTERFACE}"
+  for rule in $(/sbin/ip -4 rule list \
                 |grep "from .* lookup ${RTABLE}" \
                 |awk -F: '{print $1}'); do
-    /sbin/ip rule delete pref "${rule}"
+    /sbin/ip -4 rule delete pref "${rule}"
+  done
+  for rule in $(/sbin/ip -6 rule list \
+                |grep "from .* lookup ${RTABLE}" \
+                |awk -F: '{print $1}'); do
+    /sbin/ip -6 rule delete pref "${rule}"
   done
 }
 
 rewrite_rules() {
-  if [ "${INTERFACE}" = "${PRIMARY_INTERFACE}" ]; then
+  if [ "${INTERFACE}" == "${PRIMARY_INTERFACE}" ]; then
     return
   fi
-  ips=$( get_ipv4s | xargs printf '%s ' )
-  if [ "${#ips}" -eq 0 ]; then
+  ips=($(get_ipv4s))
+  ip6s=($(get_ipv6s))
+  if [ ${#ips[*]} -eq 0 ]; then
     remove_rules
     return
   fi
-# Could not figure out how to eliminate all these Bashisms but this script is
-# sourced from a /bin/sh script so we have to wrap them.
-bash -s -- "$RTABLE" $ips <<\EOF
-  RTABLE="$1" ; shift
-  ips=( "$@" )
+  # This is the part we would do in rewrite_primary() if we knew
+  # the gateway address.
+  if [ ${#ip6s[*]} -gt 0 -a -z "$(/sbin/ip -6 route show table ${RTABLE})" ]; then
+    gateway6=$(get_ipv6_gateway)
+    # Manually add the route, then add it to ${route6_file} so it
+    # gets brought down with the rest of the interface.
+    /sbin/ip -6 route add default via ${gateway6} dev ${INTERFACE} table ${RTABLE}
+    cat <<- EOF > ${route6_file}
+	default via ${gateway6} dev ${INTERFACE} table ${RTABLE}
+EOF
+  fi
+  logger --tag ec2net "[rewrite_rules] Rewriting rules for ${INTERFACE}"
   # Retrieve a list of IP rules for the route table that belongs
   # to this interface. Treat this as the stale list. For each IP
   # address obtained from metadata, cross the corresponding rule
@@ -201,40 +277,60 @@ bash -s -- "$RTABLE" $ips <<\EOF
   # outbound traffic from that IP to the interface route table.
   # Then, remove all other rules found in the stale list.
   declare -A rules
-  for rule in $( /sbin/ip rule list |
-                 grep "from .* lookup ${RTABLE}" |
-                 awk '{print $1$3}' ); do
+  for rule in $(/sbin/ip -4 rule list \
+                |grep "from .* lookup ${RTABLE}" \
+                |awk '{print $1$3}'); do
     split=(${rule//:/ })
     rules[${split[1]}]=${split[0]}
   done
-  for ip in "${ips[@]}"; do
+  for ip in ${ips[@]}; do
     if [[ ${rules[${ip}]} ]]; then
       unset rules[${ip}]
     else
-      /sbin/ip rule add from "${ip}" lookup ${RTABLE}
+      /sbin/ip -4 rule add from ${ip} lookup ${RTABLE}
     fi
   done
   for rule in "${!rules[@]}"; do
-    /sbin/ip rule delete pref "${rules[${rule}]}"
+    /sbin/ip -4 rule delete pref "${rules[${rule}]}"
   done
-EOF
+  # Now do the same, but for IPv6
+  declare -A rules6
+  for rule in $(/sbin/ip -6 rule list \
+                |grep "from .* lookup ${RTABLE}" \
+                |awk '{print $1$3}'); do
+    split=(${rule/:/ }) # take care to only replace the first :
+    rules6[${split[1]}]=${split[0]}
+  done
+  for ip in ${ip6s[@]}; do
+    if [[ ${rules6[${ip}]} ]]; then
+      unset rules6[${ip}]
+    else
+      /sbin/ip -6 rule add from ${ip} lookup ${RTABLE}
+    fi
+  done
+  for rule in "${!rules6[@]}"; do
+    /sbin/ip -6 rule delete pref "${rules6[${rule}]}"
+  done
 }
 
 plug_interface() {
-    logger "ABOUT TO CALL REWRITE PRIMARY"
+  logger --tag ec2net "[plug_interface] ${INTERFACE} plugged"
   rewrite_primary
 }
 
 unplug_interface() {
+  logger --tag ec2net "[unplug_interface] ${INTERFACE} unplugged"
   remove_rules
   remove_aliases
   remove_primary
 }
 
 activate_primary() {
+  logger --tag ec2net "[activate_primary] Activating ${INTERFACE}"
   /sbin/ifup ${INTERFACE}
 }
 
 deactivate_primary() {
+  logger --tag ec2net "[deactivate_primary] Deactivating ${INTERFACE}"
   /sbin/ifdown ${INTERFACE}
 }
