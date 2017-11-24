@@ -20,6 +20,26 @@ if [ $UID -ne 0 ]; then
   exit 1
 fi
 
+logger --tag ec2net "[ec2ifscan] Waiting for primary network interface"
+
+# Wait while primary network interface isn't ready
+attempts=60
+false
+while [ "${?}" -gt 0 ]; do
+if [ "${attempts}" -eq 0 ]; then
+  logger --tag ec2net "[ec2ifscan] Aborted. Primary network interface not ready yet."
+  exit
+fi
+
+if [ ! -f /sys/class/net/eth0/operstate ] || ! grep 'up' /sys/class/net/eth0/operstate; then
+  if [ ! -f /sys/class/net/ens3/operstate ] || ! grep 'up' /sys/class/net/ens3/operstate; then
+    let attempts--
+    sleep 0.5
+    false
+  fi
+fi
+done
+
 logger --tag ec2net "[ec2ifscan] Scanning for unconfigured interfaces"
 for dev in $(find /sys/class/net/eth* /sys/class/net/ens*) ; do
   cfg="/etc/network/interfaces.d/if-${dev##*/}.cfg"

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (C) 2012 Amazon.com, Inc. or its affiliates.
 # All Rights Reserved.
 #
@@ -12,6 +14,25 @@
 # OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the
 # License.
+INTERFACE="${interface}"
+PREFIX="${new_prefix}"
+. /etc/network/ec2net-functions
 
-ACTION=="add", SUBSYSTEM=="net", KERNEL=="eth*|ens*", IMPORT{program}="/bin/sleep 1"
-SUBSYSTEM=="net", KERNEL=="eth*|ens*", RUN+="/bin/bash /etc/network/ec2net.hotplug.sh"
+ec2dhcp_config() {
+  rewrite_rules
+  rewrite_aliases
+}
+
+ec2dhcp_restore() {
+  remove_aliases
+  remove_rules
+}
+
+if [ "$reason" = "RELEASE" ]; then
+ec2dhcp_restore
+logger "restore $?"
+elif [ "$reason" = "BOUND" ] || [ "$reason" = "REBOOT" ] || [ "$reason" = "RENEW" ] || [ "$reason" = "REBIND" ] ; then 
+ec2dhcp_config
+else 
+logger "No action on $reason"
+fi

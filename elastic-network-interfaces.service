@@ -1,0 +1,8 @@
+[Unit]
+After=udev
+
+[Service]
+ExecStart=/sbin/ec2ifscan
+
+[Install]
+WantedBy=default.target

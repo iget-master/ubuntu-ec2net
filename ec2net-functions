@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright (C) 2012 Amazon.com, Inc. or its affiliates.
 # All Rights Reserved.
@@ -170,13 +170,13 @@ rewrite_primary() {
   router=$(( $(echo ${network}|cut -d. -f4) + 1 ))
   gateway="$(echo ${network}|cut -d. -f1-3).${router}"
   cat <<- EOF > ${config_file}
-# This file is automaticatically generated
-# See https://github.com/iget-master/ubuntu-ec2net for source
-auto ${INTERFACE}
-iface ${INTERFACE} inet dhcp
-iface ${INTERFACE} inet6 dhcp
-post-up ip route add default via ${gateway} dev ${INTERFACE} table ${RTABLE}
-post-up ip route add default via ${gateway} dev ${INTERFACE} metric ${RTABLE}
+    # This file is automaticatically generated
+    # See https://github.com/iget-master/ubuntu-ec2net for source
+    auto ${INTERFACE}
+    iface ${INTERFACE} inet dhcp
+    iface ${INTERFACE} inet6 dhcp
+    post-up ip route add default via ${gateway} dev ${INTERFACE} table ${RTABLE}
+    post-up ip route add default via ${gateway} dev ${INTERFACE} metric ${RTABLE}
 EOF
   # Use broadcast address instead of unicast dhcp server address.
   # Works around an issue with two interfaces on the same subnet.
