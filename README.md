@@ -17,6 +17,14 @@ The following features was implemented over ademaria's package:
 - [ ] ec2ifscan was ported
 - [ ] Now it detects interfaces attached on stopped instance
 
+# Installation
+
+This repository isn't a ubuntu package yet. To install, you need to clone this repository and install.
+
+    git clone https://github.com/iget-master/ubuntu-ec2net.git
+    cd ubuntu-ec2net
+    make install
+
 # Todo:
 
 - [ ] Create a minimum documentation
