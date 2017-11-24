@@ -19,7 +19,6 @@ The following features was implemented over ademaria's package:
 
 # Todo:
 
-- [ ] Add support to IPv6 (port current version of ec2net from Amazon Linux)
 - [ ] Create a minimum documentation
 - [ ] Transform this repository in a package to ubuntu
 
