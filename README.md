@@ -12,3 +12,20 @@ The main change right now is that this tool now supports [Predictable Network In
 - [ ] Add support to IPv6 (port current version of ec2net from Amazon Linux)
 - [ ] Create a minimum documentation
 - [ ] Transform this repository in a package to ubuntu
+
+# Enabling IPV6 on Primary Network Interface
+
+This tools don't touch your primary network interface.
+If you've enabled IP66 on this interface and want to have IPv6 assigned
+to it by DHCP, you should configure manually your cloud-init by adding
+this configuration lines:
+
+    network:
+      version: 2
+      ethernets:
+        # Use eth0 or ens3 depending on Predictable Network Interface Names
+        ens3:
+          dhcp4: true
+          dhcp6: true
+          
+This configuration may be added either on your [instance user data](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html#user-data-cloud-init) or inside the `/etc/cloud/cloud.cfg.d/`. 
