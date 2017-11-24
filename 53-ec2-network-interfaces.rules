@@ -15,4 +15,4 @@
 
 ACTION=="add", SUBSYSTEM=="net", KERNEL=="eth*", IMPORT{program}="/bin/sleep 1"
 ACTION=="add", SUBSYSTEM=="net", KERNEL=="ens*", IMPORT{program}="/bin/sleep 1"
-SUBSYSTEM=="net", RUN+="/etc/network/ec2net.hotplug"
+SUBSYSTEM=="net", RUN+="/etc/network/ec2net.hotplug.sh"
