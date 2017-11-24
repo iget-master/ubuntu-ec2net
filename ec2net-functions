@@ -114,6 +114,7 @@ rewrite_primary() {
 # See https://github.com/jessecollier/ubuntu-ec2net for source
 auto ${INTERFACE}
 iface ${INTERFACE} inet dhcp
+iface ${INTERFACE} inet6 dhcp
 post-up ip route add default via ${gateway} dev ${INTERFACE} table ${RTABLE}
 post-up ip route add default via ${gateway} dev ${INTERFACE} metric ${RTABLE}
 EOF
