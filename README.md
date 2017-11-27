@@ -1,5 +1,7 @@
 # ubuntu-ec2net
 
+Do you like this? Pay me a coke: <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PG6CGJ9TQPSFL"><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif"></a>
+
 *Note: This repository is based on ademaria/ubuntu-ec2net, updated and adapted for our personal usage.*
 
 Port of Amazon's ec2-net-utils scripts to Debian/Ubuntu for automatically
