@@ -16,7 +16,7 @@ modes:
 	chmod 644 53-ec2-network-interfaces.rules
 	chmod 644 75-persistent-net-generator.rules
 	chmod 644 elastic-network-interfaces.conf
-	chmod 755 elastic-network-interfaces.service
+	chmod 644 elastic-network-interfaces.service
 	chmod 755 ec2dhcp
 	chmod 644 ec2net-functions
 	chmod 755 ec2ifscan
