@@ -35,7 +35,7 @@ This repository isn't a ubuntu package yet. To install, you need to clone this r
 # Enabling IPV6 on Primary Network Interface
 
 This tools don't touch your primary network interface.
-If you've enabled IP66 on this interface and want to have IPv6 assigned
+If you've enabled IPv6 on this interface and want to have IPv6 assigned
 to it by DHCP, you should configure manually your cloud-init by adding
 this configuration lines:
 
